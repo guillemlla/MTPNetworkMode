@@ -1,4 +1,4 @@
-from Utils import PacketManager as pm
+import PacketManager as pm
 import random
 
 random.seed()

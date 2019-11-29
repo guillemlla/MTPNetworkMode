@@ -1,4 +1,4 @@
-from Support import Constants as CTE
+import Constants as CTE
 import RPi.GPIO as GPIO
 
 

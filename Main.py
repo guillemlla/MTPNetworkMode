@@ -1,5 +1,6 @@
-from Utils import GPIOManager as gpio
-from Support import Exceptions, Constants as CTE
+import GPIOManager as gpio
+import Exceptions
+import Constants as CTE
 
 
 def begin():

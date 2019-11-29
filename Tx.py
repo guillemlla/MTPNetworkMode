@@ -1,4 +1,4 @@
-from Utils import FancyDataSender as FancyDataSender
+import FancyDataSender as FancyDataSender
 
 
 class Tx:

@@ -1,4 +1,4 @@
-from Support import Constants as CTE
+import Constants as CTE
 from lib_nrf24 import NRF24
 import RPi.GPIO as GPIO
 import signal, spidev, time
