@@ -1,5 +1,6 @@
 import Constants as CTE
 from lib_nrf24 import NRF24
+from queue import Queue
 import RPi.GPIO as GPIO
 import signal, spidev, time
 
@@ -81,8 +82,30 @@ class NetworkDataSender(BaseDataSender):
         source, dest1, dest2, isACK, sequenceNumber, packetType = PacketManager.readNetworkHeader(data)
         if isACK and dest2 == self.address:
             return True
+    def polling(self, timeout=None, max_tries=None):
 
+        BaseDataSender.sendData(CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD)
+        
+        max_time = time.time() + timeout
+        tries=0
 
+        while True:
+            BaseDataSender.receiveHello(self)
+            tries += 1
+
+            if max_tries is not None and tries >= max_tries:
+                raise MaxCallException()
+            if max_time is not None and time.time >= timeout:
+                raise TimeoutException()
+    
+    def receiveHello(self):
+        while not self.radio.available(CTE.NETWORK_PAQUET_CONTROL_REPLY_YES_PAYLOAD):
+            time.sleep(1000 / 1000000)
+        file = []
+        self.radio.read(file, self.radio.getPayloadSize())
+        return file
+
+    
 class UnicastDataSender(BaseDataSender):
     def isCorrectACK(self, data):
         sequenceNumber, isACK = PacketManager.readUnicastHeader(data)
@@ -90,3 +113,8 @@ class UnicastDataSender(BaseDataSender):
             return True
         else:
             return False
+
+class MaxCallException(PollingException):
+    """Exception raised if polling function times out"""
+class TimeoutException(PollingException):
+    """Exception raised if polling function times out"""
