@@ -74,4 +74,3 @@ def isFileAlreadyReceived():
     return FileAlreadyReceived
 
 #def send_file(dest, transmiter):
-

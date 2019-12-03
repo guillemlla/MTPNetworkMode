@@ -9,6 +9,7 @@ RX_MODE = 2
 NETWORK_MODE = 3
 
 #Network Address
+
 IP_ADDRESS = 5 #This number has to be the IP addres of current device
 
 #Network mode Constants

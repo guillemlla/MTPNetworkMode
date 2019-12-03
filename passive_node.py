@@ -40,4 +40,3 @@ def passive_node(transmiter, receiver, hist):
         else:
             NM.pass_token(dest2, tx)
     return ChangeToActiveNode
-
