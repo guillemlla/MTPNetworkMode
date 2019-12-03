@@ -1,4 +1,5 @@
-from Support import Exceptions, Constants as CTE
+import Exceptions
+import Constants as CTE
 import array
 
 
