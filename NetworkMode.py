@@ -1,6 +1,6 @@
 import Rx as rx
 import Tx as tx
-import PacketManager as pm
+import Utils.PacketManager as pm
 import Support.Constants as CTE
 import random
 import passive_node
@@ -73,8 +73,5 @@ def setFileAlreadyReceived( FileReceived ):
 def isFileAlreadyReceived():
     return FileAlreadyReceived
 
-def send_file(dest, transmiter):
-
-
-
+#def send_file(dest, transmiter):
 

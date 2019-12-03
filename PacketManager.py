@@ -1,5 +1,4 @@
-import Exceptions
-import Constants as CTE
+from Support import Exceptions, Constants as CTE
 import array
 
 
@@ -75,6 +74,17 @@ def readNetworkHeader(header):
     packetType = header[1] & 3
     return source, dest1, dest2, numToBool(isACK), sequenceNumber, packetType
 
+def createReplyYesPacket(dest):
+    packet = createNetworkPacket(CTE.NETWORK_PAQUET_CONTROL_REPLY_YES_PAYLOAD, CTE.IP_ADDRESS, dest,
+                                 dest, CTE.PAQUET_FIELD_ISACK_YES_ACK, CTE.PAQUET_FIELD_SN_FIRST,
+                                 CTE.NETWORK_PAQUET_TYPE_CONTROL)
+    return packet
+
+def createReplyNoPacket(dest):
+    packet = createNetworkPacket(CTE.NETWORK_PAQUET_CONTROL_REPLY_NO_PAYLOAD, CTE.IP_ADDRESS, dest,
+                                 dest, CTE.PAQUET_FIELD_ISACK_NO_ACK, CTE.PAQUET_FIELD_SN_FIRST,
+                                 CTE.NETWORK_PAQUET_TYPE_CONTROL)
+    return packet
 
 def boolToNum(boolVar):
     mapper = {
