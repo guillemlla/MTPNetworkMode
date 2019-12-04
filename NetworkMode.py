@@ -18,14 +18,14 @@ MAX_RETRIES = 3
 REPLY_YES = "Yes"
 ACK_RECEIVED = True
 
-node_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+node_list = [1, 2, 3, 4, 5, 6, 7, 8]
 
 class Network_Mode:
 
 	def __init__(self, receiver, transmitter, own_address):
 		self.receiver = receiver
 		self.transmitter = transmitter
-		self.historical_data = {1:None, 2:None, 3:None, 4:None, 5:None, 6:None, 7:None, 8:None}
+		self.historical_data = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0}
 		self.file_already_received = False
 		self.active_state = False
 		self.finished = False
@@ -39,6 +39,8 @@ class Network_Mode:
 		
 		if USB_connected():
 			self.active_state = True
+			self.update_token()
+
 		
 		# Set node active or pasive
 		while not self.finished:
@@ -51,51 +53,61 @@ class Network_Mode:
 	def active_node(self):
 		# We obtain the nodes to send data through the different mechanisms implemented on the standard
 		# Save data from USB
-		data_usb = read_file_usb()
+		data_usb = read_file()
 
 		# List of nodes which replied Yes to Hello message
 		reply_yes_node = []
+		
+		reply_no_node = []
 		# List of nodes which received the packet of data
 		nodes_with_packet = []
-		everyoneHasTheFile, reply_yes_node, nodes_with_packet = self.polling(data_usb)
+		
+		everyoneHasTheToken, reply_yes_node, reply_no_node, nodes_with_packet = self.polling(data_usb)
 
 		# Pass token to one of the nodes with data
-		if everyoneHasTheFile:
+		if everyoneHasTheToken:
 			self.finished = True
 		else:
-			new_token_owner = nodes_with_packet[random.randint(len(nodes_with_packet))]
-			send_token_retries = 0
-			while send_data_retries < MAX_RETRIES:
-				ack = self.send_token(new_token_owner)
-				if ack == ACK_RECEIVED:
-					send_data_retries = MAX_RETRIES + 1
-					self.active_state = False
+			ack = False
+			for n in nodes_with_packet:
+				send_token_retries = 0
+				while send_data_retries < MAX_RETRIES:
+					ack = self.send_token(n)
+					if ack:
+						send_data_retries = MAX_RETRIES + 1
+						self.active_state = False
+				if ack:
+					break
+						
 		
 		
-	def passive_node(transmiter, receiver, hist):
+	def passive_node(self):
 		msg_rcv = receiver.receivePacket()
 		payload, next_rcv, dest1, dest2, isACK, sequenceNumber, packetType = PM.readNetworkPacket(msg_rcv)
 
-		if packetType == CTE.NETWORK_PAQUET_TYPE_CONTROL:
-			if payload == CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD:
-				if self.file_already_received:
-					packet = PM.createReplyNoPacket(next_rcv)
-					time.sleep(random.randint(0, TIMEOUT_MAX2SEND) / 1000.0)
-				else:
-					packet = PM.createReplyYesPacket(next_rcv)
-					time.sleep(random.randint(0,TIMEOUT_MAX2SEND)/1000.0)
-				tx.sendPacket(packet)
+		if dest1 == FancyDataSender.BaseDataSender.address:
+			if packetType == CTE.NETWORK_PAQUET_TYPE_CONTROL:
+				if payload == CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD:
+					if self.file_already_received:
+						packet = PM.createReplyNoPacket(next_rcv)
+						time.sleep(random.randint(0, TIMEOUT_MAX2SEND) / 1000.0)
+					else:
+						packet = PM.createReplyYesPacket(next_rcv)
+						time.sleep(random.randint(0,TIMEOUT_MAX2SEND)/1000.0)
+					tx.sendPacket(packet)
 
-		if packetType == CTE.NETWORK_PAQUET_TYPE_PASSTOKEN:
-			if dest1 == dest2:
-				if self.file_already_received:
-					packet = PM.createReplyYesPacket(next_rcv)
-					self.active_state = True
+			elif packetType == CTE.NETWORK_PAQUET_TYPE_PASSTOKEN:
+				if dest1 == dest2:
+					if self.file_already_received:
+						packet = PM.createReplyYesPacket(next_rcv)
+						self.active_state = True
+					else:
+						packet = PM.createReplyNoPacket(next_rcv)
+					tx.sendPacket(packet)
 				else:
-					packet = PM.createReplyNoPacket(next_rcv)
-				tx.sendPacket(packet)
-			else:
-				self.send_token(dest2)
+					self.send_token(dest2)
+			elif packetType == CTE.NETWORK_PAQUET_TYPE_DATA:
+					write_USB(payload)
 			
 
 	def send_token(self, new_token_owner):
@@ -104,8 +116,8 @@ class Network_Mode:
 
 		return ack
 
-	def update_token(self, current_node, se):
-		
+	def update_token(self):
+		self.historical_data[FancyDataSender.BaseDataSender.address] = 1
 
 	def send_hello(self, transmitter, dest):
 		hello_msg = "Hello"
@@ -124,36 +136,37 @@ class Network_Mode:
 		timeout = 5
 		reply_yes_node = []
 		nodes_with_packet = []
+		reply_no_node = []
 		for x in range(1,8) :
 			dest1 = x
 			dest2 = x
 			if dest1 != ID :
-				data=PacketManager.createNetworkPacket(CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD, ID,dest1,dest2,0,0,CTE.NETWORK_PAQUET_TYPE_CONTROL)            
-				FancyDataSender.BaseDataSender.sendData(data)
+				data = PacketManager.createNetworkPacket(CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD,source,dest1,dest2,0,0,CTE.NETWORK_PAQUET_TYPE_CONTROL)            
+                self.transmitter.sendData(data)
 				time_first = time.time()
 				while True :
-					response = FancyDataSender.BaseDataSender.receiveMessage()
+					response = self.receiver.receiveMessage()
 					time_actual = time.time()
 					if time_actual >=  time_first + timeout:
 						break
 					if response is not None :
 						#From received data take an integer number:
-						intValue = int.from_bytes(response, 'big')
-						if (intValue == CTE.NETWORK_PAQUET_CONTROL_REPLY_YES_PAYLOAD):  #Received reply yes
-							self.historical_data.update(dest1=CTE.NETWORK_PAQUET_CONTROL_REPLY_YES_PAYLOAD)
-							thereIsReply = True
-							#Do whatever: SEND FILE to dest1
-							reply_yes_node.append(dest1)
-							ack = self.send_data(transmitter, dest1, data_usb)
-							if send_file(dest1):
-								nodes_with_packet.append(dest1)
-						elif (intValue == CTE.NETWORK_PAQUET_CONTROL_REPLY_NO_PAYLOAD) :
-							self.historical_data.update(dest1=CTE.NETWORK_PAQUET_CONTROL_REPLY_NO_PAYLOAD)
-						break
+						payload, _, _, _, _, _, packetType = pm.readNetworkPacket(response)
+						if (packetType == CTE.NETWORK_PAQUET_TYPE_CONTROL and dest1 == ID):
+							if (payload == CTE.NETWORK_PAQUET_CONTROL_REPLY_YES_PAYLOAD):  #Received reply yes
+								thereIsReply = True
+								# Do whatever: SEND FILE to dest1
+								reply_yes_node.append(dest1)
+								ack = self.send_file(dest1, data_usb)
+								if ack:
+									nodes_with_packet.append(dest1)
+							elif (payload == CTE.NETWORK_PAQUET_CONTROL_REPLY_NO_PAYLOAD) :
+								reply_no_node.append(dest1)
+							break
 	   
 		if thereIsReply == False :
-			everyoneHasTheFile = check_token(self.history_to_string(self.historical_data))
-		return everyoneHasTheFile, reply_yes_node, nodes_with_packet
+			everyoneHasTheToken = check_token(self.history_to_string(self.historical_data))
+		return everyoneHasTheToken, reply_yes_node, reply_no_node, nodes_with_packet
                 
 	def check_token(self, token) :
 		for x in range(0,15) :
