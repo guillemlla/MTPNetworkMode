@@ -20,7 +20,12 @@ class BaseDataSender:
         self.radio.write(data)
         print("[*] Packet ", self.numPackets, " Send")
         self.radio.startListening()
-        return self.waitForACK()
+
+        #Canviat group B: When doing "HELLO" pooling, we do not expect ACK.
+        if (data[2:] == CTE.NETWORK_PAQUET_CONTROL_HELLO_PAYLOAD): 
+            return 0
+        else:
+            return self.waitForACK()
 
     def waitForACK(self):
         signal.signal(signal.SIGALRM, self.timeoutHandler)
