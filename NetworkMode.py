@@ -11,6 +11,7 @@ import time
 #everyoneHasTheFile -> Boolean that says if all the nodes have the file-
 
 #def polling(source,dest1,dest2,payload,timeout = 5, token):
+
 #!/usr/bin/env python
 
 # Import of libraries from python
@@ -18,13 +19,12 @@ import os
 import subprocess
 import random
 import sys
-import time
+
 
 # Import of libraries implemented for the Network Protocol implementation
 import Rx as rx
 import Tx as tx
 import PacketManager as pm
-import Constants as CTE
 import FancyDataSender as BaseDataSender
 
 MAX_RETRIES = 3
