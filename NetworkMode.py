@@ -13,6 +13,7 @@ import Tx as tx
 import PacketManager as pm
 import Constants as CTE
 import FancyDataSender as BaseDataSender
+import USBManager
 
 MAX_RETRIES = 3
 REPLY_YES = "Yes"
@@ -30,15 +31,21 @@ class Network_Mode:
         self.active_state = False
         self.finished = False
         self.iam_the_first = False
+        self.data = None
 
     def network_mode(self):
         # State shows if the node is active or not
         #  Check if there is a USB connected
         # rpistr = "ls /media/pi"
-        USB_name = subprocess.Popen(rpistr, shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE)
-        line = USB_name.stdout.readline()
-
-        if USB_connected():
+        #USB_name = subprocess.Popen(rpistr, shell=True, preexec_fn=os.setsid, stdout=subprocess.PIPE)
+        #line = USB_name.stdout.readline()
+        
+        if not os.path.exists("/home/pi/network_file"):
+            os.makedirs("/home/pi/network_file")
+        
+        if len(os.listdir(os.path.dirname( "/media/pi/")))!=0:
+            self.data = USBManager.read_file_usb()
+            USBManager.copyfile(self.data,"/home/pi/network_file/data.txt")
             self.active_state = True
             self.update_token()
             self.iam_the_first = True
@@ -54,11 +61,7 @@ class Network_Mode:
         # We obtain the nodes to send data through the different mechanisms implemented on the standard
         # Save data from USB
 
-        #nomes ha de llegir el primer node
-        if self.iam_the_first:
-            file2send = read_file()
-        else:
-            file2send = ""   #ha d'estar guardada a una variable de quan l'ha rebut
+        file2send = self.data   #ha d'estar guardada a una variable de quan l'ha rebut
 
 
 
@@ -139,17 +142,18 @@ class Network_Mode:
                         #to do  should send ACK, not reply yes
                         #packet = PM.createReplyYesPacket(next_rcv)
                         self.active_state = True
-                    else:
-                        #  not exactly, should direct the token to the final destination!!!
-                        # send token....
-                        #packet = PM.createReplyNoPacket(next_rcv)
                     tx.sendPacket(packet)
                 else:
                     #not finished, the gateway  may not be dest2 ( because maybe this node does not have direct contact with it), should check this in table of  replies_yes_no
                     self.send_token(dest2, dest2)
             elif packetType == CTE.NETWORK_PAQUET_TYPE_DATA:
                 #not write sub, write locally First
-                write_USB(payload)
+                #create ack packet and send it
+                ################save payload or msg_recveive in data
+                self.data = self.data + payload
+                #si el paquet es l'ultim o diu END o alguna cosa per l'estil que el guardi amb:
+                #USBManager.copyfile(self.data,"/home/pi/network_file/data.txt")
+                #USBManager.save to usb if usb connected
 
 
 
