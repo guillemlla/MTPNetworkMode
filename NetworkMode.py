@@ -209,6 +209,7 @@ class Network_Mode:
                                 reply_yes_node.append(dest1)
                                 #send whole file
                                 ack = self.send_file(ID, dest1, file2send)
+                                self.file_already_received=True
                                 #ACK WILL BE TRUE IF THE FILE HAS BEEN CORRECTLY SENT  (INSIDE SEND_FILE, RETRANSMISSIONS SHOULD BE HANDLED
                                 if ack:
                                     nodes_with_packet.append(dest1)
